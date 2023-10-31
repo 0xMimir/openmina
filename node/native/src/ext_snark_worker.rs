@@ -102,7 +102,7 @@ where
 
     let mut read = buf.as_slice();
     let result = T::binprot_read(&mut read)?;
-    openmina_core::log::debug!(openmina_core::log::system_time(); "succesfully read {len} bytes");
+    openmina_core::log::debug!(openmina_core::log::system_time(); "successfully read {len} bytes");
     Ok(result)
 }
 

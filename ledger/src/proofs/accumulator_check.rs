@@ -12,7 +12,7 @@ use super::urs_utils;
 const OTHER_URS_LENGTH: usize = 65536;
 
 pub fn get_srs() -> super::VerifierSRS {
-    // We need an URS with 65536 points (should be in the other verfifier index - step?)
+    // We need an URS with 65536 points (should be in the other verified index - step?)
     SRS::<<Pallas as KimchiCurve>::OtherCurve>::create(OTHER_URS_LENGTH)
 }
 

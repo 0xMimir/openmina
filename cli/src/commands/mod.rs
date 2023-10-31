@@ -17,7 +17,7 @@ pub enum Command {
     /// Openmina node.
     Node(node::Node),
     Snark(snark::Snark),
-    /// Miscilaneous utilities.
+    /// Miscellaneous utilities.
     Misc(misc::Misc),
     Replay(replay::Replay),
 }
