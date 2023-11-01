@@ -1,4 +1,4 @@
-use std::{mem::size_of, str::FromStr};
+use std::{mem::size_of, net::SocketAddr, str::FromStr};
 
 use mina_p2p_messages::binprot::BinProtWrite;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -21,6 +21,17 @@ use super::rpc::{
 };
 
 pub async fn run(port: u16, rpc_sender: super::RpcSender) {
+    let localhost_filter = warp::addr::remote().and_then(|addr: Option<SocketAddr>| async move {
+        let Some(addr) = addr else {
+            return Err(warp::reject::not_found());
+        };
+
+        match addr.ip().is_loopback() {
+            true => Ok(()),
+            false => Err(warp::reject::not_found()),
+        }
+    });
+
     #[cfg(feature = "p2p-webrtc")]
     let signaling = {
         use node::p2p::{
@@ -74,19 +85,22 @@ pub async fn run(port: u16, rpc_sender: super::RpcSender) {
             })
     };
 
-    // TODO(binier): make endpoint only accessible locally.
+    // TODO(binier): make endpoint only accessible locally. +
     let rpc_sender_clone = rpc_sender.clone();
-    let state_get = warp::path!("state").and(warp::get()).then(move || {
-        let rpc_sender_clone = rpc_sender_clone.clone();
-        async move {
-            let result: Option<RpcStateGetResponse> =
-                rpc_sender_clone.oneshot_request(RpcRequest::StateGet).await;
+    let state_get = warp::path!("state")
+        .and(warp::get())
+        .and(localhost_filter)
+        .then(move |_| {
+            let rpc_sender_clone = rpc_sender_clone.clone();
+            async move {
+                let result: Option<RpcStateGetResponse> =
+                    rpc_sender_clone.oneshot_request(RpcRequest::StateGet).await;
 
-            with_json_reply(&result, StatusCode::OK)
-        }
-    });
+                with_json_reply(&result, StatusCode::OK)
+            }
+        });
 
-    // TODO(binier): make endpoint only accessible locally.
+    // TODO(binier): make endpoint only accessible locally. +
     let stats = {
         let rpc_sender_clone = rpc_sender.clone();
         #[derive(Deserialize, Default)]
@@ -96,7 +110,8 @@ pub async fn run(port: u16, rpc_sender: super::RpcSender) {
         let action_stats = warp::path!("stats" / "actions")
             .and(warp::get())
             .and(optq::<ActionQueryParams>())
-            .then(move |query: ActionQueryParams| {
+            .and(localhost_filter)
+            .then(move |query: ActionQueryParams, _| {
                 let rpc_sender_clone = rpc_sender_clone.clone();
                 async move {
                     let id_filter = query.id.as_ref().map(|s| s.as_str());
@@ -134,7 +149,8 @@ pub async fn run(port: u16, rpc_sender: super::RpcSender) {
         let sync_stats = warp::path!("stats" / "sync")
             .and(warp::get())
             .and(optq::<SyncQueryParams>())
-            .then(move |query: SyncQueryParams| {
+            .and(localhost_filter)
+            .then(move |query: SyncQueryParams, _| {
                 let rpc_sender_clone = rpc_sender_clone.clone();
                 async move {
                     let result: RpcSyncStatsGetResponse = rpc_sender_clone
@@ -237,7 +253,8 @@ pub async fn run(port: u16, rpc_sender: super::RpcSender) {
     let snarker_job_commit = warp::path!("snarker" / "job" / "commit")
         .and(warp::post())
         .and(warp::filters::body::bytes())
-        .then(move |body: bytes::Bytes| {
+        .and(localhost_filter)
+        .then(move |body: bytes::Bytes, _| {
             let rpc_sender_clone = rpc_sender_clone.clone();
             async move {
                 let Ok(job_id) = String::from_utf8(body.to_vec())

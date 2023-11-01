@@ -134,9 +134,9 @@ impl Query {
 }
 
 pub fn routes(
-    rpc_sernder: super::RpcSender,
+    rpc_sender: super::RpcSender,
 ) -> impl Filter<Error = Rejection, Extract = impl Reply> + Clone {
-    let state = warp::any().map(move || Context(rpc_sernder.clone()));
+    let state = warp::any().map(move || Context(rpc_sender.clone()));
     let schema = RootNode::new(
         Query,
         EmptyMutation::<Context>::new(),
