@@ -12,7 +12,7 @@ pub mod multi_node;
 pub mod solo_node;
 
 mod cluster_runner;
-use cluster_runner::ClusterRunner;
+pub use cluster_runner::ClusterRunner;
 
 use strum_macros::{EnumIter, EnumString, IntoStaticStr};
 
@@ -20,7 +20,9 @@ use crate::cluster::{Cluster, ClusterConfig};
 use crate::scenario::{Scenario, ScenarioId, ScenarioStep};
 
 use self::multi_node::basic_connectivity_initial_joining::MultiNodeBasicConnectivityInitialJoining;
+use self::multi_node::basic_connectivity_peer_discovery::MultiNodeBasicConnectivityPeerDiscovery;
 use self::solo_node::{
+    basic_connectivity_accept_incoming::SoloNodeBasicConnectivityAcceptIncoming,
     basic_connectivity_initial_joining::SoloNodeBasicConnectivityInitialJoining,
     sync_root_snarked_ledger::SoloNodeSyncRootSnarkedLedger,
 };
@@ -30,12 +32,25 @@ use self::solo_node::{
 pub enum Scenarios {
     SoloNodeSyncRootSnarkedLedger(SoloNodeSyncRootSnarkedLedger),
     SoloNodeBasicConnectivityInitialJoining(SoloNodeBasicConnectivityInitialJoining),
+    SoloNodeBasicConnectivityAcceptIncoming(SoloNodeBasicConnectivityAcceptIncoming),
     MultiNodeBasicConnectivityInitialJoining(MultiNodeBasicConnectivityInitialJoining),
+    MultiNodeBasicConnectivityPeerDiscovery(MultiNodeBasicConnectivityPeerDiscovery),
 }
 
 impl Scenarios {
-    pub fn iter() -> ScenariosIter {
-        <Self as strum::IntoEnumIterator>::iter()
+    // Turn off global test
+    pub fn iter() -> impl IntoIterator<Item = Scenarios> {
+        <Self as strum::IntoEnumIterator>::iter().filter(|s| !s.skip())
+    }
+
+    fn skip(&self) -> bool {
+        match self {
+            Self::SoloNodeSyncRootSnarkedLedger(_) => false,
+            Self::SoloNodeBasicConnectivityInitialJoining(_) => false,
+            Self::SoloNodeBasicConnectivityAcceptIncoming(_) => cfg!(feature = "p2p-webrtc"),
+            Self::MultiNodeBasicConnectivityInitialJoining(_) => false,
+            Self::MultiNodeBasicConnectivityPeerDiscovery(_) => cfg!(feature = "p2p-webrtc"),
+        }
     }
 
     pub fn id(self) -> ScenarioId {
@@ -50,7 +65,9 @@ impl Scenarios {
         match self {
             Self::SoloNodeSyncRootSnarkedLedger(_) => None,
             Self::SoloNodeBasicConnectivityInitialJoining(_) => None,
+            Self::SoloNodeBasicConnectivityAcceptIncoming(_) => None,
             Self::MultiNodeBasicConnectivityInitialJoining(_) => None,
+            Self::MultiNodeBasicConnectivityPeerDiscovery(_) => None,
         }
     }
 
@@ -65,8 +82,14 @@ impl Scenarios {
             Self::SoloNodeBasicConnectivityInitialJoining(_) => {
                 SoloNodeBasicConnectivityInitialJoining::DOCS
             }
+            Self::SoloNodeBasicConnectivityAcceptIncoming(_) => {
+                SoloNodeBasicConnectivityAcceptIncoming::DOCS
+            }
             Self::MultiNodeBasicConnectivityInitialJoining(_) => {
                 MultiNodeBasicConnectivityInitialJoining::DOCS
+            }
+            Self::MultiNodeBasicConnectivityPeerDiscovery(_) => {
+                MultiNodeBasicConnectivityPeerDiscovery::DOCS
             }
         }
     }
@@ -82,14 +105,17 @@ impl Scenarios {
                 "chain_id": "3c41383994b87449625df91769dff7b507825c064287d30fada9286f3f1cb15e",
                 "initial_time": 1695702049579000000,
                 "max_peers": 100,
-                "ask_initial_peers_interval": { "secs": 10, "nanos": 0 }
+                "ask_initial_peers_interval": { "secs": 10, "nanos": 0 },
+                "initial_peers": [],
+                "randomize_peer_id": false
             }
                                                                            "#,
             )
             .unwrap()],
-            // TODO(vlad9486):
             Self::SoloNodeBasicConnectivityInitialJoining(_) => vec![],
+            Self::SoloNodeBasicConnectivityAcceptIncoming(_) => vec![],
             Self::MultiNodeBasicConnectivityInitialJoining(_) => vec![],
+            Self::MultiNodeBasicConnectivityPeerDiscovery(_) => vec![],
         };
 
         scenario
@@ -103,7 +129,9 @@ impl Scenarios {
         match self {
             Self::SoloNodeSyncRootSnarkedLedger(v) => v.run(runner).await,
             Self::SoloNodeBasicConnectivityInitialJoining(v) => v.run(runner).await,
+            Self::SoloNodeBasicConnectivityAcceptIncoming(v) => v.run(runner).await,
             Self::MultiNodeBasicConnectivityInitialJoining(v) => v.run(runner).await,
+            Self::MultiNodeBasicConnectivityPeerDiscovery(v) => v.run(runner).await,
         }
     }
 

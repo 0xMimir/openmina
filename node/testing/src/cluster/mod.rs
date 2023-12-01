@@ -98,7 +98,9 @@ impl Cluster {
     pub fn add_rust_node(&mut self, testing_config: RustNodeTestingConfig) -> ClusterNodeId {
         let node_i = self.nodes.len();
         let (shutdown_tx, shutdown_rx) = mpsc::channel(1);
-        let secret_key = {
+        let secret_key = if testing_config.randomize_peer_id {
+            P2pSecretKey::from_bytes(rand::random())
+        } else {
             let mut bytes = [0; 32];
             let bytes_len = bytes.len();
             let i_bytes = node_i.to_be_bytes();
@@ -118,16 +120,17 @@ impl Cluster {
                 )
             })
             .unwrap();
-        let libp2p_port = self
-            .available_ports
-            .next()
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "couldn't find available port in port range: {:?}",
-                    self.config.port_range()
-                )
-            })
-            .unwrap();
+        let libp2p_port = testing_config.libp2p_port.unwrap_or_else(|| {
+            self.available_ports
+                .next()
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "couldn't find available port in port range: {:?}",
+                        self.config.port_range()
+                    )
+                })
+                .unwrap()
+        });
 
         let config = Config {
             ledger: LedgerConfig {},
@@ -146,9 +149,9 @@ impl Cluster {
                 libp2p_port: Some(libp2p_port),
                 listen_port: http_port,
                 identity_pub_key: pub_key,
-                initial_peers: vec![],
+                initial_peers: testing_config.initial_peers,
                 max_peers: testing_config.max_peers,
-                ask_initial_peers_interval: Duration::from_secs(120),
+                ask_initial_peers_interval: testing_config.ask_initial_peers_interval,
                 enabled_channels: ChannelId::iter_all().collect(),
             },
             transition_frontier: TransitionFrontierConfig::default(),
@@ -226,7 +229,7 @@ impl Cluster {
         let state = node::State::new(config);
         fn effects<S: node::Service>(store: &mut node::Store<S>, action: node::ActionWithMeta) {
             let peer_id = store.state().p2p.my_id();
-            eprintln!("{peer_id}: {:?}", action.action().kind());
+            openmina_core::log::trace!(action.time(); "{peer_id}: {:?}", action.action().kind());
             node::effects(store, action)
         }
         let store = node::Store::new(

@@ -8,6 +8,8 @@ pub mod scenario;
 pub mod scenarios;
 pub mod service;
 
+pub mod ocaml;
+
 mod server;
 pub use server::server;
 
@@ -23,4 +25,13 @@ pub fn setup() -> tokio::runtime::Runtime {
         .enable_all()
         .build()
         .unwrap()
+}
+
+pub fn setup_without_rt() {
+    openmina_node_native::tracing::initialize(openmina_node_native::tracing::Level::WARN);
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(num_cpus::get().max(2) - 1)
+        .thread_name(|i| format!("openmina_rayon_{i}"))
+        .build_global()
+        .unwrap();
 }
