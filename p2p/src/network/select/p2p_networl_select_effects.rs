@@ -88,31 +88,41 @@ impl P2pNetworkSelectAction {
                                 data: a.data.clone(),
                             });
                         }
-                        Protocol::Stream(kind) => match a.kind {
-                            SelectKind::Stream(peer_id, stream_id) => {
-                                match kind {
-                                    StreamKind::Discovery(DiscoveryAlgorithm::Kademlia1_0_0) => {
-                                        // send to kademlia handler
-                                        unimplemented!()
-                                    }
-                                    StreamKind::Broadcast(BroadcastAlgorithm::Meshsub1_1_0) => {
-                                        // send to meshsub handler
-                                        unimplemented!()
-                                    }
-                                    StreamKind::Rpc(RpcAlgorithm::Rpc0_0_1) => {
-                                        store.dispatch(P2pNetworkRpcIncomingDataAction {
-                                            addr: a.addr,
-                                            peer_id,
-                                            stream_id,
-                                            data: a.data.clone(),
-                                        });
+                        Protocol::Stream(kind) => {
+                            match a.kind {
+                                SelectKind::Stream(peer_id, stream_id) => {
+                                    match kind {
+                                        StreamKind::Discovery(
+                                            DiscoveryAlgorithm::Kademlia1_0_0,
+                                        ) => {
+                                            store.dispatch(
+                                                P2pNetworkKademliaAction::IncomingData {
+                                                    peer_id,
+                                                    stream_id,
+                                                    address: a.addr,
+                                                    data: a.data.clone(),
+                                                },
+                                            );
+                                        }
+                                        StreamKind::Broadcast(BroadcastAlgorithm::Meshsub1_1_0) => {
+                                            // send to meshsub handler
+                                            unimplemented!()
+                                        }
+                                        StreamKind::Rpc(RpcAlgorithm::Rpc0_0_1) => {
+                                            store.dispatch(P2pNetworkRpcIncomingDataAction {
+                                                addr: a.addr,
+                                                peer_id,
+                                                stream_id,
+                                                data: a.data.clone(),
+                                            });
+                                        }
                                     }
                                 }
+                                _ => {
+                                    openmina_core::error!(meta.time(); "invalid select protocol kind: {:?}", a.kind);
+                                }
                             }
-                            _ => {
-                                openmina_core::error!(meta.time(); "invalid select protocol kind: {:?}", a.kind);
-                            }
-                        },
+                        }
                     }
                 } else {
                     let tokens = state.tokens.clone();

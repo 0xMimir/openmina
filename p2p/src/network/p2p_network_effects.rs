@@ -44,6 +44,7 @@ impl P2pNetworkAction {
             Self::Noise(v) => v.effects(meta, store),
             Self::Yamux(v) => v.effects(meta, store),
             Self::Rpc(v) => v.effects(meta, store),
+            Self::Kademlia(v) => v.effects(meta, store)
         }
     }
 }

@@ -30,6 +30,8 @@ use crate::p2p::connection::P2pConnectionAction;
 use crate::p2p::disconnection::P2pDisconnectionAction;
 use crate::p2p::discovery::P2pDiscoveryAction;
 use crate::p2p::listen::P2pListenAction;
+use crate::p2p::network::kademlia::outgoing::P2pNetworkKademliaOutgoingAction;
+use crate::p2p::network::kademlia::P2pNetworkKademliaAction;
 use crate::p2p::network::noise::{
     P2pNetworkNoiseAction, P2pNetworkNoiseDecryptedDataAction, P2pNetworkNoiseHandshakeDoneAction,
     P2pNetworkNoiseIncomingChunkAction, P2pNetworkNoiseIncomingDataAction,
@@ -208,6 +210,22 @@ pub enum ActionKind {
     P2pListenError,
     P2pListenExpired,
     P2pListenNew,
+    P2pNetworkKademliaBootstrap,
+    P2pNetworkKademliaBootstrapPending,
+    P2pNetworkKademliaBootstrapSuccess,
+    P2pNetworkKademliaIncomingData,
+    P2pNetworkKademliaOutgoingConnectFailed,
+    P2pNetworkKademliaOutgoingConnectInit,
+    P2pNetworkKademliaOutgoingConnectPending,
+    P2pNetworkKademliaOutgoingConnectSuccess,
+    P2pNetworkKademliaOutgoingSendMessageFailed,
+    P2pNetworkKademliaOutgoingSendMessageInit,
+    P2pNetworkKademliaOutgoingSendMessagePending,
+    P2pNetworkKademliaOutgoingSendMessageSuccess,
+    P2pNetworkKademliaOutgoingStreamFailed,
+    P2pNetworkKademliaOutgoingStreamInit,
+    P2pNetworkKademliaOutgoingStreamPending,
+    P2pNetworkKademliaOutgoingStreamSuccess,
     P2pNetworkNoiseDecryptedData,
     P2pNetworkNoiseHandshakeDone,
     P2pNetworkNoiseIncomingChunk,
@@ -357,7 +375,7 @@ pub enum ActionKind {
 }
 
 impl ActionKind {
-    pub const COUNT: u16 = 269;
+    pub const COUNT: u16 = 285;
 }
 
 impl std::fmt::Display for ActionKind {
@@ -657,6 +675,7 @@ impl ActionKindGet for P2pNetworkAction {
             Self::Noise(a) => a.kind(),
             Self::Yamux(a) => a.kind(),
             Self::Rpc(a) => a.kind(),
+            Self::Kademlia(a) => a.kind(),
         }
     }
 }
@@ -976,6 +995,18 @@ impl ActionKindGet for P2pNetworkRpcAction {
     }
 }
 
+impl ActionKindGet for P2pNetworkKademliaAction {
+    fn kind(&self) -> ActionKind {
+        match self {
+            Self::Outgoing(a) => a.kind(),
+            Self::Bootstrap { .. } => ActionKind::P2pNetworkKademliaBootstrap,
+            Self::BootstrapPending => ActionKind::P2pNetworkKademliaBootstrapPending,
+            Self::BootstrapSuccess => ActionKind::P2pNetworkKademliaBootstrapSuccess,
+            Self::IncomingData { .. } => ActionKind::P2pNetworkKademliaIncomingData,
+        }
+    }
+}
+
 impl ActionKindGet for TransitionFrontierSyncLedgerAction {
     fn kind(&self) -> ActionKind {
         match self {
@@ -1194,6 +1225,31 @@ impl ActionKindGet for P2pNetworkRpcOutgoingQueryAction {
 impl ActionKindGet for P2pNetworkRpcOutgoingDataAction {
     fn kind(&self) -> ActionKind {
         ActionKind::P2pNetworkRpcOutgoingData
+    }
+}
+
+impl ActionKindGet for P2pNetworkKademliaOutgoingAction {
+    fn kind(&self) -> ActionKind {
+        match self {
+            Self::ConnectInit { .. } => ActionKind::P2pNetworkKademliaOutgoingConnectInit,
+            Self::ConnectPending { .. } => ActionKind::P2pNetworkKademliaOutgoingConnectPending,
+            Self::ConnectFailed { .. } => ActionKind::P2pNetworkKademliaOutgoingConnectFailed,
+            Self::ConnectSuccess { .. } => ActionKind::P2pNetworkKademliaOutgoingConnectSuccess,
+            Self::StreamInit { .. } => ActionKind::P2pNetworkKademliaOutgoingStreamInit,
+            Self::StreamPending { .. } => ActionKind::P2pNetworkKademliaOutgoingStreamPending,
+            Self::StreamFailed { .. } => ActionKind::P2pNetworkKademliaOutgoingStreamFailed,
+            Self::StreamSuccess { .. } => ActionKind::P2pNetworkKademliaOutgoingStreamSuccess,
+            Self::SendMessageInit { .. } => ActionKind::P2pNetworkKademliaOutgoingSendMessageInit,
+            Self::SendMessagePending { .. } => {
+                ActionKind::P2pNetworkKademliaOutgoingSendMessagePending
+            }
+            Self::SendMessageFailed { .. } => {
+                ActionKind::P2pNetworkKademliaOutgoingSendMessageFailed
+            }
+            Self::SendMessageSuccess { .. } => {
+                ActionKind::P2pNetworkKademliaOutgoingSendMessageSuccess
+            }
+        }
     }
 }
 

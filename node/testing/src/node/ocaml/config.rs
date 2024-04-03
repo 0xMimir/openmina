@@ -104,7 +104,7 @@ impl OcamlNodeConfig {
 }
 
 impl OcamlNodeExecutable {
-    pub const DEFAULT_DOCKER_IMAGE: &'static str = "vladsimplestakingcom/mina-light:2.0.0rampup4";
+    pub const DEFAULT_DOCKER_IMAGE: &'static str = "minaprotocol/mina-daemon:2.0.0berkeley-rc1-1551e2f-bullseye-berkeley";
     pub const DEFAULT_MINA_EXECUTABLE: &'static str = "mina";
 
     fn docker_container_name<'a>(tmp_dir: &temp_dir::TempDir) -> String {

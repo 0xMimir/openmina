@@ -29,6 +29,9 @@ pub use self::yamux::*;
 pub mod rpc;
 pub use self::rpc::*;
 
+pub mod kademlia;
+pub use self::kademlia::*;
+
 pub use self::data::{Data, DataSized};
 mod data {
     use std::{fmt, ops};

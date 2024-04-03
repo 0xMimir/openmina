@@ -1,3 +1,5 @@
+use std::net::{IpAddr, SocketAddr};
+
 use crate::block_producer::{block_producer_effects, BlockProducerAction};
 use crate::consensus::consensus_effects;
 use crate::event_source::event_source_effects;
@@ -39,6 +41,7 @@ pub fn effects<S: Service>(store: &mut Store<S>, action: ActionWithMeta) {
         Action::CheckTimeouts(_) => {
             // TODO(binier): create init action and dispatch this there.
             store.dispatch(ExternalSnarkWorkerAction::Start);
+            // dbg!(&store.state().p2p.peers.keys().collect::<Vec<_>>());
 
             #[cfg(feature = "p2p-libp2p")]
             {
@@ -51,6 +54,44 @@ pub fn effects<S: Service>(store: &mut Store<S>, action: ActionWithMeta) {
 
                 store.dispatch(P2pDiscoveryAction::KademliaBootstrap);
                 store.dispatch(P2pDiscoveryAction::KademliaInit);
+            }
+            #[cfg(not(feature = "p2p-libp2p"))]
+            {
+                if !store.dispatch(p2p::P2pNetworkKademliaAction::BootstrapPending) {
+                    let initial_peers = store
+                        .state()
+                        .p2p
+                        .config
+                        .initial_peers
+                        .iter()
+                        .filter_map(|opts| match opts {
+                            p2p::connection::outgoing::P2pConnectionOutgoingInitOpts::WebRTC {
+                                ..
+                            } => None,
+                            p2p::connection::outgoing::P2pConnectionOutgoingInitOpts::LibP2P(
+                                peer,
+                            ) => {
+                                let port = peer.port;
+                                let address = match peer.host {
+                                    p2p::webrtc::Host::Domain(_) => todo!(),
+                                    p2p::webrtc::Host::Ipv4(ip) => {
+                                        SocketAddr::new(IpAddr::V4(ip), port)
+                                    }
+                                    p2p::webrtc::Host::Ipv6(ip) => {
+                                        SocketAddr::new(IpAddr::V6(ip), port)
+                                    }
+                                };
+
+                                Some((address, peer.peer_id))
+                            }
+                        })
+                        .collect();
+
+                    store.dispatch(p2p::P2pNetworkKademliaAction::Bootstrap {
+                        initial_peers,
+                        peer_id: store.state().p2p.config.identity_pub_key.peer_id(),
+                    });
+                }
             }
 
             store.dispatch(SnarkPoolAction::CheckTimeouts);

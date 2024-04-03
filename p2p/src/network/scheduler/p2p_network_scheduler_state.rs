@@ -17,7 +17,7 @@ pub struct P2pNetworkSchedulerState {
     pub pnet_key: [u8; 32],
     pub connections: BTreeMap<SocketAddr, P2pNetworkConnectionState>,
     pub broadcast_state: (),
-    pub discovery_state: (),
+    pub discovery_state: P2pNetworkKademliaState,
     pub rpc_incoming_streams: BTreeMap<PeerId, BTreeMap<StreamId, P2pNetworkRpcState>>,
     pub rpc_outgoing_streams: BTreeMap<PeerId, BTreeMap<StreamId, P2pNetworkRpcState>>,
 }

@@ -1,7 +1,8 @@
 use std::net::SocketAddr;
 
 use crate::{
-    connection::outgoing::P2pConnectionOutgoingInitOpts, webrtc::Host, MioCmd, P2pCryptoService,
+    connection::outgoing::P2pConnectionOutgoingInitOpts,
+    outgoing::P2pNetworkKademliaOutgoingAction, webrtc::Host, MioCmd, P2pCryptoService,
     P2pMioService,
 };
 
@@ -116,8 +117,26 @@ impl P2pNetworkSchedulerAction {
                     Some(Protocol::Stream(StreamKind::Discovery(
                         DiscoveryAlgorithm::Kademlia1_0_0,
                     ))) => {
-                        // init the stream
-                        unimplemented!()
+                        let SelectKind::Stream(peer_id, stream_id) = a.kind else {
+                            return;
+                        };
+
+                        let Some(request_id) = store
+                            .state()
+                            .network
+                            .scheduler
+                            .discovery_state
+                            .find_request(&peer_id, &a.addr, &stream_id)
+                        else {
+                            return;
+                        };
+
+                        store.dispatch(P2pNetworkKademliaOutgoingAction::StreamSuccess {
+                            id: request_id,
+                            peer_id,
+                            stream_id,
+                            address: a.addr
+                        });
                     }
                     Some(Protocol::Stream(StreamKind::Broadcast(
                         BroadcastAlgorithm::Meshsub1_1_0,

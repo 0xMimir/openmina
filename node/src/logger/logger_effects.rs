@@ -478,6 +478,7 @@ pub fn logger_effects<S: Service>(store: &Store<S>, action: ActionWithMetaRef<'_
             P2pAction::Peer(_) => {}
             // TODO:
             P2pAction::Network(action) => match action {
+                P2pNetworkAction::Kademlia(_) => {}
                 P2pNetworkAction::Scheduler(action) => match action {
                     P2pNetworkSchedulerAction::InterfaceDetected(action) => {
                         openmina_core::log::info!(

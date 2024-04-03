@@ -98,6 +98,9 @@ impl P2pNetworkState {
                         }
                     }
                 }
+            },
+            P2pNetworkAction::Kademlia(a) => {
+                self.scheduler.discovery_state.reducer(meta.with_action(a))
             }
         }
     }

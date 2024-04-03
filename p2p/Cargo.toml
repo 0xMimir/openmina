@@ -41,6 +41,8 @@ mina-p2p-messages = { workspace = true }
 
 salsa-simple = { path = "../tools/salsa-simple" }
 openmina-core = { path = "../core" }
+quick-protobuf = "0.8.1"
+crypto-bigint = { version = "0.5.5", features = ["serde"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.26", features = ["rt"] }

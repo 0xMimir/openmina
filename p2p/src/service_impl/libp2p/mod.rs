@@ -235,14 +235,7 @@ impl Libp2pService {
         };
 
         let (cmd_sender, mut cmd_receiver) = mpsc::unbounded_channel();
-        let psk = {
-            let mut hasher = Blake2b256::default();
-            hasher.update(behaviour.rendezvous_string.as_ref());
-            let hash = hasher.finalize();
-            let mut psk_fixed: [u8; 32] = Default::default();
-            psk_fixed.copy_from_slice(hash.as_ref());
-            PreSharedKey::new(psk_fixed)
-        };
+        let psk = PreSharedKey::new(openmina_core::preshared_key(&behaviour.chain_id));
 
         let fut = async move {
             let mut swarm = libp2p::SwarmBuilder::with_existing_identity(identity_keys)
