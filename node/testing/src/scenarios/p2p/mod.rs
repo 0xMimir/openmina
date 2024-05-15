@@ -2,4 +2,5 @@ pub mod basic_connection_handling;
 pub mod basic_incoming_connections;
 pub mod basic_outgoing_connections;
 pub mod kademlia;
+pub mod kad;
 pub mod pubsub;
